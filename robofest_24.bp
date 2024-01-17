@@ -1,0 +1,86 @@
+include "utils"
+
+BLACK_VALUE = 3
+WHITE_VALUE = 24
+GRAY_VALUE = (BLACK_VALUE + WHITE_VALUE) / 2
+
+MOTOR_R = "B"
+MOTOR_L = "C"
+MOVEMENT_MOTORS = MOTOR_R + MOTOR_L
+LINE_SENSOR = 3
+GYRO_SENSOR = 2
+COLOR_SENSOR = 4
+
+SPEED = 30
+
+KP = 1.5
+KI = 0.9
+
+SENSOR_MODE_LIGHT = 0
+SENSOR_MODE_ANGLE = 0
+SENSOR_MODE_ANGLE_SPEED = 1
+SENSOR_MODE_ANGLE_AND_SPEED = 3
+SENSOR_MODE_HT_COLOR = 0
+SENSOR_MODE_HT_RGB = 5
+
+True = "True"
+False = "False"
+
+Motor.Invert(MOTOR_R)
+Sensor.SetMode(LINE_SENSOR, SENSOR_MODE_LIGHT)
+Sensor.SetMode(GYRO_SENSOR, SENSOR_MODE_ANGLE)
+Sensor.SetMode(COLOR_SENSOR, 4)
+# 2 4
+Sub main
+  goDist(5, 0)
+  goDist(10, 2)
+  ResetGyroAndMotors()
+  target_angle = 0
+  goDist(23, 1)
+  goRotate(90)
+  target_angle = 90
+  positionColor[0] = -1
+  
+  sumColors = 14
+  
+  For i=1 To 3
+    lineValue = Sensor.ReadPercent(LINE_SENSOR)
+    While (lineValue > GRAY_VALUE)
+      goGyro()
+      lineValue = Sensor.ReadPercent(LINE_SENSOR)
+    EndWhile
+    # Motor.Stop(MOVEMENT_MOTORS, True)
+    # Program.Delay(300)
+    readColorHsv()
+    sumColors -= choicedColor
+    positionColor[i] = choicedColor
+    LCD.Clear()
+    LCD.Text(1, 0, 0, 2, choicedColor)
+    # Program.Delay(100)
+    While (lineValue < GRAY_VALUE)
+      goGyro()
+      lineValue = Sensor.ReadPercent(LINE_SENSOR)
+    EndWhile
+  EndFor
+  positionColor[0] = sumColors
+  
+  LCD.StopUpdate()
+  LCD.Clear()
+  LCD.Text(1, 0, 0, 2, positionColor[0])
+  LCD.Text(1, 0, 20, 2, positionColor[1])
+  LCD.Text(1, 0, 40, 2, positionColor[2])
+  LCD.Text(1, 0, 60, 2, positionColor[3])
+  LCD.Update()
+  Motor.Stop(MOVEMENT_MOTORS, True)
+  Program.Delay(1000)
+  
+  goDist(55, 1)
+  Motor.Stop(MOVEMENT_MOTORS, True)
+  target_angle = target_angle + 90
+  tankRotate(target_angle)
+  Motor.Stop(MOVEMENT_MOTORS, True)
+EndSub
+
+# main()
+goDist(-20, 1)
+# tankRotate(90)
