@@ -14,36 +14,40 @@ YELLOW_COLOR_RGB[0] = 1
 YELLOW_COLOR_RGB[1] = 1
 YELLOW_COLOR_RGB[2] = 0
 
-RED_COLOR_HSV_H = 350
-GREEN_COLOR_HSV_H = 156
-BLUE_COLOR_HSV_H = 226
-YELLOW_COLOR_HSV_H = 18
+RED_COLOR_HSV_H_CUBE = 350
+GREEN_COLOR_HSV_H_CUBE = 156
+BLUE_COLOR_HSV_H_CUBE = 226
+YELLOW_COLOR_HSV_H_CUBE = 18
+
+RED_COLOR_HSV_H_LINE = 5
+GREEN_COLOR_HSV_H_LINE = 111
+BLUE_COLOR_HSV_H_LINE = 193
+YELLOW_COLOR_HSV_H_LINE = 49
 
 lastError = 0
-Sub goLine
-  error = Sensor.ReadPercent(LINE_SENSOR) - GRAY_VALUE
-  correction = Math.Round(error * KP + (error + lastError) * KI)
-  Lspeed = SPEED + correction
-  Rspeed = SPEED - correction
-  Motor.StartPower(MOTOR_L, Lspeed)
-  Motor.StartPower(MOTOR_R, Rspeed)
-  lastError = error
-EndSub
+Function goLine(in number speed)
+  error = Sensor.ReadPercent(@LINE_SENSOR) - @GRAY_VALUE
+  correction = Math.Round(error * @KP + (error + @lastError) * @KI)
+  Lspeed = speed - correction
+  Rspeed = speed + correction
+  Motor.StartPower(@MOTOR_L, Lspeed)
+  Motor.StartPower(@MOTOR_R, Rspeed)
+  @lastError = error
+EndFunction
 
 target_angle = 0
-Sub goGyro
-  error = Sensor.ReadRawValue(GYRO_SENSOR, 0) - target_angle
-  correction = Math.Round(error * KP + (error + lastError) * KI)
-  Lspeed = SPEED + correction
-  Rspeed = SPEED - correction
-  Motor.StartPower(MOTOR_L, Lspeed)
-  Motor.StartPower(MOTOR_R, Rspeed)
+Function goGyro(in number speed)
+  error = Sensor.ReadRawValue(@GYRO_SENSOR, 0) - @target_angle
+  correction = Math.Round(error * @KP + (error + @lastError) * @KI)
+  Lspeed = speed - correction
+  Rspeed = speed + correction
+  Motor.StartPower(@MOTOR_L, Lspeed)
+  Motor.StartPower(@MOTOR_R, Rspeed)
   lastError = error
-EndSub
+EndFunction
 
 Function cmToAngle(in number cm, out number angle)
-  WHEEL_DIAMETER = 6.24
-  angle = (cm / (Math.Pi * WHEEL_DIAMETER)) * 360
+  angle = (cm / (Math.Pi * @WHEEL_DIAMETER)) * 360
 EndFunction
 
 Sub ResetGyroAndMotors
@@ -56,219 +60,291 @@ Function goDist(in number disatnceCm, in number mode)
   # mode 1 - gyro sensor
   # mode 2 - line sensor
   
-  MOVEMENT_MOTORS = "BC"
-  SPEED = 30
+  MOVEMENT_MOTORS = @MOVEMENT_MOTORS
+  SPEED = @SPEED
   angle = 0
   sign = 1
   If disatnceCm < 0 Then
     sign = 0-1
-    SPEED = 0-SPEED
   EndIf
   cmToAngle(disatnceCm, angle)
-  ResetGyroAndMotors()
+  # ResetGyroAndMotors()
+  Motor.ResetCount("C")
   
-  If (mode == 0) Then
+  If (mode = 0) Then
     Motor.MovePower(MOVEMENT_MOTORS, SPEED, angle, "True")
   Else
     While (sign * Motor.GetCount("C") < sign * angle)
       
       If mode = 1 Then
-        goGyro()
+        goGyro(sign * SPEED)
         
       ElseIf mode = 2 Then
-        goLine()
+        goLine(sign * SPEED)
       EndIf
     EndWhile
-    
-  EndFunction
+  EndIf
+EndFunction
+
+Function goRotate(in number angle)
+  MOTOR_R = @MOTOR_R
+  MOTOR_L = @MOTOR_L
+  MOVEMENT_MOTORS = @MOVEMENT_MOTORS
+  GYRO_SENSOR = @GYRO_SENSOR
+  SPEED = @SPEED
   
-  Function goRotate(in number angle)
-    MOTOR_R = "C"
-    MOTOR_L = "B"
-    MOVEMENT_MOTORS = MOTOR_R + MOTOR_L
-    GYRO_SENSOR = 2
-    SPEED = 30
-    
-    If angle > 0 Then
-      While (Sensor.ReadRawValue(GYRO_SENSOR, 0) < angle)
-        Motor.StartPower(MOTOR_L, SPEED)
-        Motor.StartPower(MOTOR_R, 0)
-      EndWhile
-    EndIf
-    # Motor.MovePower(MOVEMENT_MOTORS, SPEED, angle, "True")
-  EndFunction
+  If angle > 0 Then
+    While ((Sensor.ReadRawValue(GYRO_SENSOR, 0) - @target_angle) < angle)
+      Motor.StartPower(MOTOR_L, SPEED)
+      Motor.StartPower(MOTOR_R, 0)
+    EndWhile
+  Else
+    While ((Sensor.ReadRawValue(GYRO_SENSOR, 0) - @target_angle) > angle)
+      Motor.StartPower(MOTOR_L, 0)
+      Motor.StartPower(MOTOR_R, SPEED)
+    EndWhile
+  EndIf
+  # Motor.MovePower(MOVEMENT_MOTORS, SPEED, angle, "True")
+EndFunction
+
+Function colorsCosAngle(in number[] color1, in number[] color2, out number angle)
+  # calc angle between two colors
+  vecMult = 0
+  sumQuad1 = 0
+  sumQuad2 = 0
+  For i = 0 To 2
+    vecMult = vecMult + color1[i] * color2[i]
+    sumQuad1 = vecMult + color1[i] * color1[i]
+    sumQuad2 = vecMult + color2[i] * color2[i]
+  EndFor
+  length1 = Math.SquareRoot(sumQuad1)
+  length2 = Math.SquareRoot(sumQuad2)
   
-  Function colorsCosAngle(in number[] color1, in number[] color2, out number angle)
-    # calc angle between two colors
-    vecMult = 0
-    sumQuad1 = 0
-    sumQuad2 = 0
-    For i = 0 To 2
-      vecMult = vecMult + color1[i] * color2[i]
-      sumQuad1 = vecMult + color1[i] * color1[i]
-      sumQuad2 = vecMult + color2[i] * color2[i]
-    EndFor
-    length1 = Math.SquareRoot(sumQuad1)
-    length2 = Math.SquareRoot(sumQuad2)
-    
-    angle = vecMult / (length1 * length2)
-  EndFunction
+  angle = vecMult / (length1 * length2)
+EndFunction
+
+Sub readColorOld
+  n_iters = 100
   
-  Sub readColorOld
-    n_iters = 100
-    
-    mean_color[0] = 0
-    mean_color[1] = 0
-    mean_color[2] = 0
-    For j=0 To (n_iters - 1)
-      color = Sensor.ReadRaw(COLOR_SENSOR, 3)
-      mean_color[0] = mean_color[0] + color[0]
-      mean_color[1] = mean_color[1] + color[1]
-      mean_color[2] = mean_color[2] + color[2]
-      # colors[i] = color
-    EndFor
-    mean_color[0] = mean_color[0] / n_iters
-    mean_color[1] = mean_color[1] / n_iters
-    mean_color[2] = mean_color[2] / n_iters
-    
-    cosAngle = 0
-    choicedColor = ""
-    maxCos = 0
-    colorsCosAngle(mean_color, RED_COLOR_RGB, cosAngle)
-    If cosAngle > maxCos Then
-      maxCos = cosAngle
-      choicedColor = "RED"
-    EndIf
-    colorsCosAngle(mean_color, BLUE_COLOR_RGB, cosAngle)
-    If cosAngle > maxCos Then
-      maxCos = cosAngle
-      choicedColor = "BLUE"
-    EndIf
-    colorsCosAngle(mean_color, YELLOW_COLOR_RGB, cosAngle)
-    If cosAngle > maxCos Then
-      maxCos = cosAngle
-      choicedColor = "YELLOW"
-    EndIf
-    colorsCosAngle(mean_color, GREEN_COLOR_RGB, cosAngle)
-    If cosAngle > maxCos Then
-      maxCos = cosAngle
-      choicedColor = "GREEN"
-    EndIf
-  EndSub
+  mean_color[0] = 0
+  mean_color[1] = 0
+  mean_color[2] = 0
+  For j=0 To (n_iters - 1)
+    color = Sensor.ReadRaw(COLOR_SENSOR, 3)
+    mean_color[0] = mean_color[0] + color[0]
+    mean_color[1] = mean_color[1] + color[1]
+    mean_color[2] = mean_color[2] + color[2]
+    # colors[i] = color
+  EndFor
+  mean_color[0] = mean_color[0] / n_iters
+  mean_color[1] = mean_color[1] / n_iters
+  mean_color[2] = mean_color[2] / n_iters
   
-  Function rgbTOhsv(in number[] rgbColor, out number[] hsvColor)
-    R = rgbColor[0]
-    G = rgbColor[1]
-    B = rgbColor[2]
-    
-    max = Math.Max(Math.Max(R, G), B)
-    min = Math.Min(Math.Min(R, G), B)
-    
-    H = 0
-    If (max = 0) Then
-      S = 0
-    Else
-      S = 1 - (min / max)
-    EndIf
-    V = max
-    
-    If ((max = R) And (G >= B)) Then
-      H = 60 * ((G - B) / (max - min))
-    ElseIf ((max = R) And (G < B)) Then
-      H = 60 * ((G - B) / (max - min)) + 360
-    ElseIf (max = G) Then
-      H = 60 * ((B - R) / (max - min)) + 120
-    Else
-      H = 60 * ((R - G) / (max - min)) + 240
-    EndIf
-    hsvColor[0] = H
-    hsvColor[1] = S
-    hsvColor[2] = V
-    
-  EndFunction
+  cosAngle = 0
+  choicedColor = ""
+  maxCos = 0
+  colorsCosAngle(mean_color, RED_COLOR_RGB, cosAngle)
+  If cosAngle > maxCos Then
+    maxCos = cosAngle
+    choicedColor = "RED"
+  EndIf
+  colorsCosAngle(mean_color, BLUE_COLOR_RGB, cosAngle)
+  If cosAngle > maxCos Then
+    maxCos = cosAngle
+    choicedColor = "BLUE"
+  EndIf
+  colorsCosAngle(mean_color, YELLOW_COLOR_RGB, cosAngle)
+  If cosAngle > maxCos Then
+    maxCos = cosAngle
+    choicedColor = "YELLOW"
+  EndIf
+  colorsCosAngle(mean_color, GREEN_COLOR_RGB, cosAngle)
+  If cosAngle > maxCos Then
+    maxCos = cosAngle
+    choicedColor = "GREEN"
+  EndIf
+EndSub
+
+Function rgbTOhsv(in number[] rgbColor, out number[] hsvColor)
+  R = rgbColor[0]
+  G = rgbColor[1]
+  B = rgbColor[2]
   
-  Sub readColorHsv
-    n_iter = 100
-    
-    mean_color[0] = 0
-    mean_color[1] = 0
-    mean_color[2] = 0
-    For j=0 To (n_iter - 1)
-      color = Sensor.ReadRaw(COLOR_SENSOR, 3)
-      mean_color[0] = mean_color[0] + color[0]
-      mean_color[1] = mean_color[1] + color[1]
-      mean_color[2] = mean_color[2] + color[2]
-      # colors[i] = color
-    EndFor
-    mean_color[0] = mean_color[0] / n_iter
-    mean_color[1] = mean_color[1] / n_iter
-    mean_color[2] = mean_color[2] / n_iter
-    
-    hsvColor[0] = 0
-    rgbTOhsv(mean_color, hsvColor)
-    H = hsvColor[0]
-    choicedColor = 5
-    dist = Math.Abs(RED_COLOR_HSV_H - H)
+  max = Math.Max(Math.Max(R, G), B)
+  min = Math.Min(Math.Min(R, G), B)
+  
+  H = 0
+  If (max = 0) Then
+    S = 0
+  Else
+    S = 1 - (min / max)
+  EndIf
+  V = max
+  
+  If ((max = R) And (G >= B)) Then
+    H = 60 * ((G - B) / (max - min))
+  ElseIf ((max = R) And (G < B)) Then
+    H = 60 * ((G - B) / (max - min)) + 360
+  ElseIf (max = G) Then
+    H = 60 * ((B - R) / (max - min)) + 120
+  Else
+    H = 60 * ((R - G) / (max - min)) + 240
+  EndIf
+  hsvColor[0] = H
+  hsvColor[1] = S
+  hsvColor[2] = V / 255
+  
+EndFunction
+
+Function calcHDist(in number H1, in number H2, out number dist)
+  d = Math.Abs(H1 - H2)
+  dist = Math.Min(d, 360 - d)
+EndFunction
+
+Function readColorHsv(in number sensorPort, in number cubeMode, out number choicedColor)
+  n_iter = 100
+  
+  mean_color[0] = 0
+  mean_color[1] = 0
+  mean_color[2] = 0
+  For j=0 To (n_iter - 1)
+    color = Sensor.ReadRaw(sensorPort, 3)
+    mean_color[0] = mean_color[0] + color[0]
+    mean_color[1] = mean_color[1] + color[1]
+    mean_color[2] = mean_color[2] + color[2]
+    # colors[i] = color
+  EndFor
+  mean_color[0] = mean_color[0] / n_iter
+  mean_color[1] = mean_color[1] / n_iter
+  mean_color[2] = mean_color[2] / n_iter
+  
+  hsvColor[0] = 0
+  rgbTOhsv(mean_color, hsvColor)
+  H = hsvColor[0]
+  V = hsvColor[2]
+  choicedColor = 5
+  dist = 0
+  
+  If cubeMode = 0 Then
+    calcHDist(@RED_COLOR_HSV_H_CUBE, H, dist)
     minDist = dist
     
     If (dist < minDist) Then
       minDist = dist
       choicedColor = 5
     EndIf
-    dist = Math.Abs(BLUE_COLOR_HSV_H - H)
+    calcHDist(@BLUE_COLOR_HSV_H_CUBE, H, dist)
     If (dist < minDist) Then
       minDist = dist
       choicedColor = 4
     EndIf
-    dist = Math.Abs(GREEN_COLOR_HSV_H - H)
+    calcHDist(@GREEN_COLOR_HSV_H_CUBE, H, dist)
     If (dist < minDist) Then
       minDist = dist
       choicedColor = 3
     EndIf
-    dist = Math.Abs(YELLOW_COLOR_HSV_H - H)
+    calcHDist(@YELLOW_COLOR_HSV_H_CUBE, H, dist)
     If (dist < minDist) Then
       minDist = dist
       choicedColor = 2
     EndIf
-  EndSub
-  
-  Sub saveS1
-    While (True = "True")
-      color = Sensor.ReadRaw(COLOR_SENSOR, 3)
-      hsvColor[0] = 0
-      rgbTOhsv(color, hsvColor)
-      LCD.StopUpdate()
-      LCD.Clear()
-      LCD.Text(1, 0, 0, 2, color[0])
-      LCD.Text(1, 0, 20, 2, color[1])
-      LCD.Text(1, 0, 40, 2, color[2])
-      LCD.Text(1, 70, 0, 2, hsvColor[0])
-      LCD.Text(1, 70, 20, 2, hsvColor[1])
-      LCD.Text(1, 70, 40, 2, hsvColor[2])
-      readColorCsv()
-      
-      LCD.Text(1, 50, 60, 2, choicedColor)
-      LCD.Update()
-    EndWhile
-  EndSub
-  
-  Function tankRotate(in number angle)
-    MOTOR_R = "C"
-    MOTOR_L = "B"
-    MOVEMENT_MOTORS = MOTOR_R + MOTOR_L
-    GYRO_SENSOR = 2
-    SPEED = 30
+  Else
+    calcHDist(@RED_COLOR_HSV_H_LINE, H, dist)
+    minDist = dist
     
-    If angle > 0 Then
-      While (Sensor.ReadRawValue(GYRO_SENSOR, 0) < angle)
-        Motor.StartPower(MOTOR_L, SPEED)
-        Motor.StartPower(MOTOR_R, -SPEED)
-      EndWhile
-    Else
-      While (Sensor.ReadRawValue(GYRO_SENSOR, 0) > angle)
-        Motor.StartPower(MOTOR_L, -SPEED)
-        Motor.StartPower(MOTOR_R, SPEED)
-      EndWhile
+    If (dist < minDist) Then
+      minDist = dist
+      choicedColor = 5
     EndIf
-    # Motor.MovePower(MOVEMENT_MOTORS, SPEED, angle, "True")
-  EndFunction
+    calcHDist(@BLUE_COLOR_HSV_H_LINE, H, dist)
+    If (dist < minDist) Then
+      minDist = dist
+      choicedColor = 4
+    EndIf
+    calcHDist(@GREEN_COLOR_HSV_H_LINE, H, dist)
+    If (dist < minDist) Then
+      minDist = dist
+      choicedColor = 3
+    EndIf
+    calcHDist(@YELLOW_COLOR_HSV_H_LINE, H, dist)
+    If (dist < minDist) Then
+      minDist = dist
+      choicedColor = 2
+    EndIf
+    
+  EndIf
+  
+EndFunction
+
+Sub saveS1
+  Sensor.SetMode(LINE_SENSOR, 4)
+  
+  While (True = "True")
+    color = Sensor.ReadRaw(LINE_SENSOR, 3)
+    hsvColor[0] = 0
+    rgbTOhsv(color, hsvColor)
+    LCD.StopUpdate()
+    LCD.Clear()
+    LCD.Text(1, 0, 0, 2, color[0])
+    LCD.Text(1, 0, 20, 2, color[1])
+    LCD.Text(1, 0, 40, 2, color[2])
+    LCD.Text(1, 70, 0, 2, hsvColor[0])
+    LCD.Text(1, 70, 20, 2, hsvColor[1])
+    LCD.Text(1, 70, 40, 2, hsvColor[2])
+    choicedColor = 0
+    readColorHsv(LINE_SENSOR, 1, choicedColor)
+    
+    LCD.Text(1, 50, 60, 2, choicedColor)
+    LCD.Update()
+  EndWhile
+EndSub
+
+Function tankRotate(in number angle)
+  MOTOR_R = "C"
+  MOTOR_L = "B"
+  MOVEMENT_MOTORS = MOTOR_R + MOTOR_L
+  GYRO_SENSOR = 2
+  SPEED = 30
+  
+  If angle > 0 Then
+    While (Sensor.ReadRawValue(GYRO_SENSOR, 0) < angle)
+      Motor.StartPower(MOTOR_L, SPEED)
+      Motor.StartPower(MOTOR_R, -SPEED)
+    EndWhile
+  Else
+    While (Sensor.ReadRawValue(GYRO_SENSOR, 0) > angle)
+      Motor.StartPower(MOTOR_L, -SPEED)
+      Motor.StartPower(MOTOR_R, SPEED)
+    EndWhile
+  EndIf
+  # Motor.MovePower(MOVEMENT_MOTORS, SPEED, angle, "True")
+EndFunction
+
+Function getArucoId(out number arucoID)
+  MSGSZEV3 = 30
+  MSGSZSLV = 30
+  '// EV3 порт, к которому подключена Arduino
+  I2CPORT = @ARDUINO_SENSOR
+  '// i2c адрес Arduino
+  I2CSLVADDR = 4
+  ' 7 - command to get ArucoID
+  ' 44 - error
+  result = 44
+  While ((result = 44) Or (result = 0) Or (result = 7))
+    sendarray[0] = 7
+    recvarray = Sensor.CommunicateI2C(I2CPORT, I2CSLVADDR, 1 ,1 , sendarray)
+    result = recvarray[0]
+    Program.Delay(50)
+  EndWhile
+  
+  ev3idToArucoId[11] = 123
+  ev3idToArucoId[13] = 213
+  ev3idToArucoId[17] = 214
+  ev3idToArucoId[19] = 234
+  ev3idToArucoId[23] = 341
+  ev3idToArucoId[29] = 342
+  ev3idToArucoId[31] = 412
+  ev3idToArucoId[37] = 413
+  
+  arucoID = ev3idToArucoId[result]
+EndFunction

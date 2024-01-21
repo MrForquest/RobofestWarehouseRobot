@@ -76,15 +76,6 @@ Sub main
     # Program.Delay(300)
     choicedColor = 0
     readColorHsv(COLOR_SENSOR, 0, choicedColor)
-    If choicedColor = 2 Then
-      Speaker.Play(100, "robofest_24/sounds/Yellow")
-    ElseIf  choicedColor = 3 Then
-      Speaker.Play(100, "robofest_24/sounds/Green")
-    ElseIf  choicedColor = 4 Then
-      Speaker.Play(100, "robofest_24/sounds/Blue")
-    ElseIf  choicedColor = 5 Then
-      Speaker.Play(100, "robofest_24/sounds/Red")
-    EndIf
     sumColors -= choicedColor
     positionColor[i] = choicedColor
     LCD.Clear()
@@ -139,7 +130,7 @@ Sub main
   Sensor.Wait(LINE_SENSOR)
   
   Motor.ResetCount(MOVEMENT_MOTORS)
-  disatnceCm = 73
+  disatnceCm = 76
   angleT = 0
   cmToAngle(disatnceCm, angleT)
   posPr2 = 0
@@ -148,7 +139,6 @@ Sub main
     goGyro(SPEED)
     colorLine = Sensor.ReadRawValue(LINE_SENSOR, 0)
     If (colorLine <> 6)  Then
-      goDist(1, 1)
       Motor.Stop(MOVEMENT_MOTORS, True)
       Sensor.SetMode(LINE_SENSOR, 4)
       Sensor.Wait(LINE_SENSOR)
@@ -159,12 +149,8 @@ Sub main
       LCD.Text(1, 0, 0, 2, colorLineMy)
       
       If colorLineMy = positionColor[pr1] Then
-        Motor.Stop(MOVEMENT_MOTORS, True)
-        goRotate(-90)
-        target_angle -= 90
-        goDist(25, 1)
-        Motor.Stop(MOVEMENT_MOTORS, True)
         Speaker.Play(100, "robofest_24/Confirm")
+        Motor.Stop(MOVEMENT_MOTORS, True)
         Program.Delay(1000)
         Program.End()
       ElseIf colorLineMy = positionColor[pr2] Then
@@ -174,7 +160,6 @@ Sub main
       Sensor.Wait(LINE_SENSOR)
       goDist(3, 1)
       Motor.Stop(MOVEMENT_MOTORS, False)
-      
     EndIf
   EndWhile
   Motor.Stop(MOVEMENT_MOTORS, True)
@@ -188,16 +173,11 @@ Sub main
   
   goDist(0-dist, 1)
   Motor.Stop(MOVEMENT_MOTORS, True)
-  goRotate(-90)
-  target_angle -= 90
-  goDist(25, 1)
-  Motor.Stop(MOVEMENT_MOTORS, True)
-  Speaker.Play(100, "robofest_24/sounds/Confirm")
   Program.End()
+  
   # Program.Delay(10000)
 EndSub
-# saveS1()
-main()
+saveS1()
 # Gyro.resetHard(GYRO_SENSOR)
 #Sensor.SetMode(LINE_SENSOR, 4)
 
