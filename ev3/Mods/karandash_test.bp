@@ -1,0 +1,34 @@
+'//  EV3 Basic, код для взаимодействие с Arduino
+'//  EV3 - I2C master, Arduino - I2C slave
+
+MSGSZEV3 = 30
+MSGSZSLV = 30
+'// EV3 порт, к которому подключена Arduino
+I2CPORT = 1
+'// i2c адрес Arduino, в нашем примере 0x04          '
+I2CSLVADDR = 4       '
+
+'// массив байт, который мы будем передавать на Arduino
+# sendarray = Vector.Init(MSGSZEV3, 12)
+
+'// массив байт, который мы будем принимать с Arduino
+# recvarray = Vector.Init(MSGSZSLV, 0)
+
+'// далее выполняем в бесконечном цикле
+While "True"
+  
+  ' // Если нужно что-то отослать на Arduino - записываем это в массив sendarray
+  sendarray[0] = 7
+  '// запускаем функцию взаимодействия по i2c, sendarray и принимаем данные
+  recvarray = Sensor.CommunicateI2C(I2CPORT, I2CSLVADDR ,1 , 1 , sendarray)
+  # recvarray = Sensor.ReadI2CRegisters( I2CPORT, I2CSLVADDR, 1 ,  1)
+  '// выводим на экран первый элемент массива recvarray
+  LCD.Text(1, 0, 0,  2,  recvarray[0])
+  
+  '// необязательная задержка - чтобы успеть рассмотреть вывод на экран
+  Program.Delay(100)
+  
+  '// очищаем экран
+  LCD.Clear()
+  
+EndWhile
