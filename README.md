@@ -3,8 +3,9 @@
 [comment]: # (<img src="/imgs/turbotoster_team.svg" alt="team image" width="50%"/>)
 
 Программа для робота, участвующего в олимпиаде "Робофест 2024 "в номнинации "Складские роботы"
-Описание репозитория
-- `arduino/uart_i2c_conv/uart_i2c_conv.ino` - файл содержит код для Arduino, 
+
+Описание струкутры репозитория:
+- `[arduino/uart_i2c_conv/uart_i2c_conv.ino](arduino/uart_i2c_conv/uart_i2c_conv.ino)` - файл содержит код для Arduino, 
 который передаёт сообщения от EV3 к камере и обратно
 - `ev3/ColorViewer.bp` - файл содержит код EV3, предназначенный для 
 просмотра значений и калибровки датчиков цвета
